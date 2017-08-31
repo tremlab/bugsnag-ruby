@@ -90,6 +90,23 @@ describe Bugsnag::Helpers do
           value = 30.times.map {|i| SecureRandom.hex(8192) }
           json = ::JSON.dump(Bugsnag::Helpers.trim_if_needed(value))
           expect(json.length).to be < Bugsnag::Helpers::MAX_PAYLOAD_LENGTH
+          json_value = ::JSON.parse(json)
+          expect(json_value.length).to be == 30
+          json_value.each_with_index do |item, index|
+            expect(item).to end_with("[TRUNCATED]")
+          end
+        end
+
+        it "truncates the array" do
+          value = 300.times.map {|i| "item #{i} " + SecureRandom.hex(8192) }
+          json = ::JSON.dump(Bugsnag::Helpers.trim_if_needed(value))
+          expect(json.length).to be < Bugsnag::Helpers::MAX_PAYLOAD_LENGTH
+          json_value = ::JSON.parse(json)
+          expect(json_value.length).to be == 40
+          json_value.each_with_index do |item, index|
+            expect(item).to start_with("item #{index} ")
+            expect(item).to end_with("[TRUNCATED]")
+          end
         end
       end
 
