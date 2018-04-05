@@ -57,12 +57,12 @@ describe 'Bugsnag' do
 
       Bugsnag.notify 'yo'
 
-      Process.fork do
+      pid = Process.fork do
         Bugsnag.notify 'yo too'
       end
       Process.wait
 
-      expect(queue.length).to eq(2)
+      expect(queue.length).to eq(2) unless pid.nil?
     end
   end
 
