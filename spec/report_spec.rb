@@ -635,6 +635,60 @@ describe Bugsnag::Report do
     }
   end
 
+# **************************************
+# **************************************
+# **************************************
+# **************************************
+
+# write a test for filtering params from request - header - referer, or delete referer from header completely? (and test that)
+#
+#
+
+  it "filters params from all url query params if they are set in default meta_data_filters" do
+
+    Bugsnag.notify(BugsnagTestException.new("It crashed")) do |report|
+      report.meta_data.merge!({
+        :request => {
+          :url => "http://admin.localhost:3000/sites/dgt/offers?utf8=%E2%9C%93&offers_grid%5Bcreated_at%5D%5B%5D=03%2F25%2F2018&offers_grid%5Bcreated_at%5D%5B%5D=04%2F24%2F2018&offers_grid%5Bcreated_at_period_type%5D=last+month&offers_grid%5Bshort_url_code%5D=&offers_grid%5Bemail%5D=hello@world.com&commit=Generate"
+          :referer => "http://admin.localhost:3000/sites/dgt?email=hello@world.com"
+          }
+      })
+    end
+
+    expect(Bugsnag).to have_sent_notification{ |payload, headers|
+      event = get_event_from_payload(payload)
+      expect(event["metaData"]).not_to be_nil
+      expect(event["metaData"]["request"]).not_to be_nil
+      expect(event["metaData"]["request"]["url"]).to eq("http://admin.localhost:3000/sites/dgt/offers?utf8=%E2%9C%93&offers_grid%5Bcreated_at%5D%5B%5D=03%2F25%2F2018&offers_grid%5Bcreated_at%5D%5B%5D=04%2F24%2F2018&offers_grid%5Bcreated_at_period_type%5D=last+month&offers_grid%5Bshort_url_code%5D=&offers_grid%5Bemail%5D=[FILTERED]&commit=Generate")
+      expect(event["metaData"]["request"]["referer"]).to eq("http://admin.localhost:3000/sites/dgt?email=[FILTERED]")
+    }
+  end
+
+    it "filters params from all url query params if they are added to meta_data_filters as strings" do
+
+      Bugsnag.configuration.meta_data_filters << "unique_param"
+      Bugsnag.notify(BugsnagTestException.new("It crashed")) do |report|
+        report.meta_data.merge!({
+          :request => {
+            :url => "http://admin.localhost:3000/sites/dgt/offers?utf8=%E2%9C%93&offers_grid%5Bcreated_at%5D%5B%5D=03%2F25%2F2018&offers_grid%5Bcreated_at%5D%5B%5D=04%2F24%2F2018&offers_grid%5Bcreated_at_period_type%5D=last+month&offers_grid%5Bshort_url_code%5D=&offers_grid%5Bunique_params%5D=secretthings&commit=Generate"
+            :referer => "http://admin.localhost:3000/sites/dgt?unique_param=secretthings"
+            }
+        })
+      end
+
+      expect(Bugsnag).to have_sent_notification{ |payload, headers|
+        event = get_event_from_payload(payload)
+        expect(event["metaData"]).not_to be_nil
+        expect(event["metaData"]["request"]).not_to be_nil
+        expect(event["metaData"]["request"]["url"]).to eq("http://admin.localhost:3000/sites/dgt/offers?utf8=%E2%9C%93&offers_grid%5Bcreated_at%5D%5B%5D=03%2F25%2F2018&offers_grid%5Bcreated_at%5D%5B%5D=04%2F24%2F2018&offers_grid%5Bcreated_at_period_type%5D=last+month&offers_grid%5Bshort_url_code%5D=&offers_grid%5Bunique_params%5D=[FILTERED]&commit=Generate")
+        expect(event["metaData"]["request"]["referer"]).to eq("http://admin.localhost:3000/sites/dgt?unique_param=[FILTERED]")
+      }
+  end
+# **************************************
+# **************************************
+# **************************************
+
+
   it "filters params from all payload hashes if they are added to meta_data_filters as regex" do
 
     Bugsnag.configuration.meta_data_filters << /other_data/

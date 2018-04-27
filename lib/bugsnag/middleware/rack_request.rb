@@ -35,6 +35,21 @@ module Bugsnag::Middleware
           Bugsnag.configuration.warn "RackRequest - Rescued error while cleaning request.fullpath: #{stde}"
         end
 
+# ***************
+# evaluate referer url to filter
+
+        # Set the referer url
+        referer = request.referer
+
+        # If app is passed a bad URL, this code will crash attempting to clean it
+        begin
+          referer << Bugsnag::Cleaner.new(report.configuration.meta_data_filters).clean_url(referer) # unsure of syntax
+          # does this: "<<"" assign result to referer?  do I pass referer in to clean_url?
+        rescue StandardError => stde
+          Bugsnag.configuration.warn "RackRequest - Rescued error while cleaning referer url: #{stde}"
+        end
+
+
         headers = {}
 
         env.each_pair do |key, value|
@@ -45,6 +60,11 @@ module Bugsnag::Middleware
           else
             next
           end
+
+
+# ***************
+# evaluate header for referer url to filter
+# or just don't include in header???
 
           headers[header_key.split("_").map {|s| s.capitalize}.join("-")] = value
         end
